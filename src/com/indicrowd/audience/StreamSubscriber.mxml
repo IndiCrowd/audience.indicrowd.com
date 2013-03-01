@@ -63,13 +63,15 @@
 			
 			private function init():void
 			{
-				startCamera();
+				startNetwork();
 				
 				
 				serverSubscribeStr =  FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
 				clientPublishStr =  FlexGlobals.topLevelApplication.parameters.clientPublishStr;
 				clientDefaultImage =  FlexGlobals.topLevelApplication.parameters.clientDefaultImage;
+				
+				videoPubDefaultImage.source = clientDefaultImage;
 				
 				// Callback 함수 등록
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
@@ -93,13 +95,13 @@
 					// 접속 실패
 				} else if (infoObject.info.code == "NetConnection.Connect.Rejected") {
 					// 연결 거부
+				} else if (infoObject.info.code == "NetConnection.Connect.Success") {
+					
 				}
 			}
 			
-			private function startCamera():void
-			{
-				userVideo.source = clientDefaultImage;
-				
+			private function startNetwork():void
+			{	
 				clientPublishConn = new NetConnection();
 				clientPublishConn.connect(clientPublishAddr);
 				
@@ -136,12 +138,14 @@
 					
 					userVideo.attachCamera(camera);
 					clientPublishStream.attachCamera(camera);
+					videoPubDefaultImage.visible = false;
+					
 				} else  {
+					videoPubDefaultImage.visible = true;
 					
 					clientPublishStream.close();
 					clientPublishStream = null;
 					userVideo.attachCamera(null);
-					userVideo.source = clientDefaultImage;
 				}
 			}
 			
@@ -176,10 +180,8 @@
 			{
 				this.videoEventsDisabled = true;
 				var videoSource:DynamicStreamingVideoSource = this.studioVideo.source as DynamicStreamingVideoSource;
-				
-				this.studioVideo.source = serverDefaltImage;
 
-				setTimeout(resetVideoSource, 5000, videoSource);
+				setTimeout(resetVideoSource, 1000, videoSource);
 			}
 			
 			private function resetVideoSource(videoSource:DynamicStreamingVideoSource):void
@@ -195,7 +197,7 @@
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
 	</fx:Declarations>
 	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360"
-					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)">
+					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)"  >
 		<s:source>
 			<s:DynamicStreamingVideoSource id="videoSource" streamType="live" host="{serverVideoAddr}">
 				<s:DynamicStreamingVideoItem streamName="{serverSubscribeStr}" />
@@ -204,5 +206,7 @@
 	</s:VideoDisplay>
 	<mx:VideoDisplay id="userVideo" x="370" y="10" width="100" height="100"
 					 click="userVideo_clickHandler(event)"/>
-	<s:Label id="lblCliCamPubState" x="10" y="290"/>
+	<s:Label id="lblCliCamPubState" x="420" y="329"/>
+	<s:Image id="videoPubDefaultImage" x="370" y="10" width="100" height="100"
+			 		click="userVideo_clickHandler(event)"/>
 </mx:Application>
