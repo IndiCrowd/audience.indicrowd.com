@@ -112,6 +112,11 @@
 				if (publish)
 				{
 					camera = Camera.getCamera();
+					
+					// if this system don't have camera, don't publishing 
+					if (camera == null)
+						return ;
+					
 					camera.setMode(clientWidth, clientHeight, clientFPS, false);
 					camera.setQuality(0, 80);
 					camera.setKeyFrameInterval(30);
@@ -174,7 +179,7 @@
 				
 				this.studioVideo.source = serverDefaltImage;
 
-				setTimeout(resetVideoSource, 2000, videoSource);
+				setTimeout(resetVideoSource, 5000, videoSource);
 			}
 			
 			private function resetVideoSource(videoSource:DynamicStreamingVideoSource):void
