@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				width="480" height="360" minWidth="480" minHeight="360" horizontalAlign="center"
+				initialize="init()" layout="absolute">
+	<fx:Script>
+		<![CDATA[
+			import mx.core.FlexGlobals;
+			import org.osmf.events.MediaPlayerStateChangeEvent;
+			import org.osmf.media.*;
+			
+			[Bindable]
+			private var serverVideoAddr:String = "rtmp://infty123.iptime.org/live";
+			[Bindable]
+			private var serverSubscribeStr:String;
+			[Bindable]
+			private var serverDefaltImage:String;
+			
+			private var clientHaveCamera:Boolean = false;
+			private var clientUseCamera:Boolean = false;
+			private var clientWidth:int = 60;
+			private var clientHeight:int = 80;
+			private var clientFPS:int = 3;
+			private var clientPublishAddr:String = "rtmp://infty123.iptime.org/live_user";
+			private var clientPublishConn:NetConnection;
+			[Bindable]
+			private var clientPublishStr:String;
+			[Bindable]
+			private var clientDefaultImage:String;
+			private var clientPublishStream:NetStream;
+			
+			
+			private var camera:Camera;
+			private var microphone:Microphone;
+
+			private var videoEventsDisabled:Boolean = false;
+			
+			public function setServerSubscribeStr(substr:String):void
+			{
+				serverSubscribeStr = substr;
+			}
+			
+			public function setClientPublishStr(substr:String):void
+			{
+				clientPublishStr = substr;
+			}
+			
+			public function setServerDefaultImage(img:String):void
+			{
+				serverDefaltImage = img;	
+			}
+			
+			public function setClientDefaultImage(img:String):void
+			{
+				clientDefaultImage = img;	
+			}
+			
+			public function playStudioVideo():void
+			{
+				connectServerVideo();
+			}
+			
+			private function init():void
+			{
+				startCamera();
+				
+				
+				serverSubscribeStr =  FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
+				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
+				clientPublishStr =  FlexGlobals.topLevelApplication.parameters.clientPublishStr;
+				clientDefaultImage =  FlexGlobals.topLevelApplication.parameters.clientDefaultImage;
+				
+				// Callback 함수 등록
+				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
+				flash.external.ExternalInterface.addCallback("setClientPublishStr", setClientPublishStr);
+				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
+				flash.external.ExternalInterface.addCallback("setClientDefaultImage", setClientDefaultImage);
+				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
+			}
+			
+			private function connectServerVideo():void
+			{
+				studioVideo.play();
+			}
+			
+			private function ncOnStatus(infoObject:NetStatusEvent):void
+			{
+				trace("nc: "+infoObject.info.code+" ("+infoObject.info.description+")");
+				
+				if (infoObject.info.code == "NetConnection.Connect.Failed")
+				{
+					// 접속 실패
+				} else if (infoObject.info.code == "NetConnection.Connect.Rejected") {
+					// 연결 거부
+				}
+			}
+			
+			private function startCamera():void
+			{
+				userVideo.source = clientDefaultImage;
+				
+				clientPublishConn = new NetConnection();
+				clientPublishConn.connect(clientPublishAddr);
+				
+				// get status information from the NetConnection object
+				clientPublishConn.addEventListener(NetStatusEvent.NET_STATUS, ncOnStatus);
+			}
+			
+			private function changeCamPubState(publish:Boolean):void
+			{
+				if (publish)
+				{
+					camera = Camera.getCamera();
+					camera.setMode(clientWidth, clientHeight, clientFPS, false);
+					camera.setQuality(0, 80);
+					camera.setKeyFrameInterval(30);
+					
+					clientPublishStream = new NetStream(clientPublishConn);
+					// set the buffer time to zero since it is chat
+					clientPublishStream.bufferTime = 0;
+					
+					var h264Settings:H264VideoStreamSettings = new H264VideoStreamSettings();
+					h264Settings.setProfileLevel(H264Profile.BASELINE, H264Level.LEVEL_5_1);
+					h264Settings.setQuality(0, 0);
+					h264Settings.setKeyFrameInterval(15);
+					h264Settings.setMode(clientWidth, clientHeight, clientFPS);
+					clientPublishStream.videoStreamSettings = h264Settings;
+					
+					clientPublishStream.publish(clientPublishStr);
+					
+					userVideo.attachCamera(camera);
+					clientPublishStream.attachCamera(camera);
+				} else  {
+					
+					clientPublishStream.close();
+					clientPublishStream = null;
+					userVideo.attachCamera(null);
+					userVideo.source = clientDefaultImage;
+				}
+			}
+			
+			protected function userVideo_clickHandler(event:MouseEvent):void
+			{
+				clientUseCamera = !clientUseCamera;
+				
+				if (clientUseCamera)
+					lblCliCamPubState.text = "전송중";
+				else
+					lblCliCamPubState.text = "";
+				
+				changeCamPubState(clientUseCamera);
+				
+			}
+			
+			protected function studioVideo_mediaPlayerStateChangeHandler(event:MediaPlayerStateChangeEvent):void
+			{
+				if (this.videoEventsDisabled)
+				{
+					return;
+				}
+				
+				//something went wrong
+				if (event.state ==  MediaPlayerState.PLAYBACK_ERROR)
+				{
+					resetVideo();
+				}
+			}
+			
+			private function resetVideo():void
+			{
+				this.videoEventsDisabled = true;
+				var videoSource:DynamicStreamingVideoSource = this.studioVideo.source as DynamicStreamingVideoSource;
+				
+				this.studioVideo.source = serverDefaltImage;
+
+				setTimeout(resetVideoSource, 2000, videoSource);
+			}
+			
+			private function resetVideoSource(videoSource:DynamicStreamingVideoSource):void
+			{
+				this.videoEventsDisabled = false;
+				this.studioVideo.source = videoSource;
+			}
+			
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360"
+					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)">
+		<s:source>
+			<s:DynamicStreamingVideoSource id="videoSource" streamType="live" host="{serverVideoAddr}">
+				<s:DynamicStreamingVideoItem streamName="{serverSubscribeStr}" />
+			</s:DynamicStreamingVideoSource>
+		</s:source>
+	</s:VideoDisplay>
+	<mx:VideoDisplay id="userVideo" x="370" y="10" width="100" height="100"
+					 click="userVideo_clickHandler(event)"/>
+	<s:Label id="lblCliCamPubState" x="10" y="290"/>
+</mx:Application>
