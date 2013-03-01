@@ -19,8 +19,8 @@
 			
 			private var clientHaveCamera:Boolean = false;
 			private var clientUseCamera:Boolean = false;
-			private var clientWidth:int = 60;
-			private var clientHeight:int = 80;
+			private var clientWidth:int = 100;
+			private var clientHeight:int = 100;
 			private var clientFPS:int = 3;
 			private var clientPublishAddr:String = "rtmp://infty123.iptime.org/live_user";
 			private var clientPublishConn:NetConnection;
