@@ -17,23 +17,6 @@
 			[Bindable]
 			private var serverDefaltImage:String;
 			
-			private var clientHaveCamera:Boolean = false;
-			private var clientUseCamera:Boolean = false;
-			private var clientWidth:int = 100;
-			private var clientHeight:int = 100;
-			private var clientFPS:int = 3;
-			private var clientPublishAddr:String = "rtmp://infty123.iptime.org/live_user";
-			private var clientPublishConn:NetConnection;
-			[Bindable]
-			private var clientPublishStr:String;
-			[Bindable]
-			private var clientDefaultImage:String;
-			private var clientPublishStream:NetStream;
-			
-			
-			private var camera:Camera;
-			private var microphone:Microphone;
-
 			private var videoEventsDisabled:Boolean = false;
 			
 			public function setServerSubscribeStr(substr:String):void
@@ -41,20 +24,12 @@
 				serverSubscribeStr = substr;
 			}
 			
-			public function setClientPublishStr(substr:String):void
-			{
-				clientPublishStr = substr;
-			}
 			
 			public function setServerDefaultImage(img:String):void
 			{
 				serverDefaltImage = img;	
 			}
 			
-			public function setClientDefaultImage(img:String):void
-			{
-				clientDefaultImage = img;	
-			}
 			
 			public function playStudioVideo():void
 			{
@@ -62,22 +37,13 @@
 			}
 			
 			private function init():void
-			{
-				startNetwork();
-				
-				
-				serverSubscribeStr =  FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
+			{		
+				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_360p";
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
-				clientPublishStr =  FlexGlobals.topLevelApplication.parameters.clientPublishStr;
-				clientDefaultImage =  FlexGlobals.topLevelApplication.parameters.clientDefaultImage;
-				
-				videoPubDefaultImage.source = clientDefaultImage;
 				
 				// Callback 함수 등록
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
-				flash.external.ExternalInterface.addCallback("setClientPublishStr", setClientPublishStr);
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
-				flash.external.ExternalInterface.addCallback("setClientDefaultImage", setClientDefaultImage);
 				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
 			}
 			
@@ -100,67 +66,6 @@
 				}
 			}
 			
-			private function startNetwork():void
-			{	
-				clientPublishConn = new NetConnection();
-				clientPublishConn.connect(clientPublishAddr);
-				
-				// get status information from the NetConnection object
-				clientPublishConn.addEventListener(NetStatusEvent.NET_STATUS, ncOnStatus);
-			}
-			
-			private function changeCamPubState(publish:Boolean):void
-			{
-				if (publish)
-				{
-					camera = Camera.getCamera();
-					
-					// if this system don't have camera, don't publishing 
-					if (camera == null)
-						return ;
-					
-					camera.setMode(clientWidth, clientHeight, clientFPS, false);
-					camera.setQuality(0, 80);
-					camera.setKeyFrameInterval(30);
-					
-					clientPublishStream = new NetStream(clientPublishConn);
-					// set the buffer time to zero since it is chat
-					clientPublishStream.bufferTime = 0;
-					
-					var h264Settings:H264VideoStreamSettings = new H264VideoStreamSettings();
-					h264Settings.setProfileLevel(H264Profile.BASELINE, H264Level.LEVEL_5_1);
-					h264Settings.setQuality(0, 0);
-					h264Settings.setKeyFrameInterval(15);
-					h264Settings.setMode(clientWidth, clientHeight, clientFPS);
-					clientPublishStream.videoStreamSettings = h264Settings;
-					
-					clientPublishStream.publish(clientPublishStr);
-					
-					userVideo.attachCamera(camera);
-					clientPublishStream.attachCamera(camera);
-					videoPubDefaultImage.visible = false;
-					
-				} else  {
-					videoPubDefaultImage.visible = true;
-					
-					clientPublishStream.close();
-					clientPublishStream = null;
-					userVideo.attachCamera(null);
-				}
-			}
-			
-			protected function userVideo_clickHandler(event:MouseEvent):void
-			{
-				clientUseCamera = !clientUseCamera;
-				
-				if (clientUseCamera)
-					lblCliCamPubState.text = "전송중";
-				else
-					lblCliCamPubState.text = "";
-				
-				changeCamPubState(clientUseCamera);
-				
-			}
 			
 			protected function studioVideo_mediaPlayerStateChangeHandler(event:MediaPlayerStateChangeEvent):void
 			{
@@ -204,9 +109,4 @@
 			</s:DynamicStreamingVideoSource>
 		</s:source>
 	</s:VideoDisplay>
-	<mx:VideoDisplay id="userVideo" x="370" y="10" width="100" height="100"
-					 click="userVideo_clickHandler(event)"/>
-	<s:Label id="lblCliCamPubState" x="420" y="329"/>
-	<s:Image id="videoPubDefaultImage" x="370" y="10" width="100" height="100"
-			 		click="userVideo_clickHandler(event)"/>
 </mx:Application>
