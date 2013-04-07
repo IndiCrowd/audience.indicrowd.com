@@ -6,12 +6,16 @@
 				initialize="init()" layout="absolute">
 	<fx:Script>
 		<![CDATA[
+			import mx.rpc.events.ResultEvent;
 			import mx.core.FlexGlobals;
 			import org.osmf.events.MediaPlayerStateChangeEvent;
 			import org.osmf.media.*;
 			
 			[Bindable]
-			private var serverVideoAddr:String = "rtmp://infty123.iptime.org/live";
+			private var serverInfoURL:String = "/server/optimal";
+			private var urlPrefix:String = "/IndiCrowd";
+			[Bindable]
+			private var serverVideoAddr:String;
 			[Bindable]
 			private var serverSubscribeStr:String;
 			[Bindable]
@@ -40,11 +44,15 @@
 			{		
 				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_360p";
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
+				urlPrefix =  FlexGlobals.topLevelApplication.parameters.urlPrefix;
+				serverInfoURL = urlPrefix + serverInfoURL;
 				
 				// Callback 함수 등록
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
 				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
+				
+				serverInfoService.send();
 			}
 			
 			private function connectServerVideo():void
@@ -95,11 +103,21 @@
 				this.studioVideo.source = videoSource;
 			}
 			
+			private function readServerInfo(event:ResultEvent):void
+			{				
+				var result:Object = JSON.parse(event.result as String);
+				
+				serverVideoAddr = "rtmp://" + result.command.hostname + ":" + result.command.rtmpPort + "/live";
+			}
 			
 		]]>
 	</fx:Script>
 	<fx:Declarations>
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<mx:HTTPService id="serverInfoService" url="{serverInfoURL}" useProxy="false" method="GET" result="readServerInfo(event)" showBusyCursor="true">
+			<mx:request xmlns="">
+			</mx:request>
+		</mx:HTTPService>
 	</fx:Declarations>
 	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360"
 					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)"  >
