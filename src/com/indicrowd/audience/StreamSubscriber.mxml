@@ -12,7 +12,7 @@
 			import org.osmf.media.*;
 			
 			[Bindable]
-			private var serverInfoURL:String = "/server/optimal";
+			private var serverInfoURL:String = "/server/streaming/optimal.json";
 			private var urlPrefix:String = "/IndiCrowd";
 			[Bindable]
 			private var serverVideoAddr:String;
