@@ -108,6 +108,9 @@
 				var result:Object = JSON.parse(event.result as String);
 				
 				serverVideoAddr = "rtmp://" + result.command.hostname + ":" + result.command.rtmpPort + "/live";
+				
+				this.studioVideo.source = videoSource;
+				this.studioVideo.play();
 			}
 			
 		]]>
