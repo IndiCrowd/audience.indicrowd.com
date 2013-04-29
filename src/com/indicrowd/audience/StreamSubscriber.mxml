@@ -6,10 +6,15 @@
 				initialize="init()" layout="absolute">
 	<fx:Script>
 		<![CDATA[
-			import mx.rpc.events.ResultEvent;
 			import mx.core.FlexGlobals;
+			import mx.rpc.events.ResultEvent;
+			
 			import org.osmf.events.MediaPlayerStateChangeEvent;
 			import org.osmf.media.*;
+			
+			[Embed(source="assets/waitting.png")]
+			[Bindable]
+			public var imgWaitting:Class;   
 			
 			[Bindable]
 			private var serverInfoURL:String = "/server/streaming/optimal.json";
@@ -51,6 +56,7 @@
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
 				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
+				flash.external.ExternalInterface.addCallback("expiredVideo", expiredVideo);
 				
 				serverInfoService.send();
 			}
@@ -85,7 +91,10 @@
 				//something went wrong
 				if (event.state ==  MediaPlayerState.PLAYBACK_ERROR)
 				{
+					waittingDlg.visible = true;
 					resetVideo();
+				} else if (event.state == MediaPlayerState.PLAYING) {
+					waittingDlg.visible = false;
 				}
 			}
 			
@@ -113,6 +122,10 @@
 				this.studioVideo.play();
 			}
 			
+			public function expiredVideo(message:String):void {
+				lblStateU.text = message;
+				lblStateD.text = message;
+			}
 		]]>
 	</fx:Script>
 	<fx:Declarations>
@@ -130,4 +143,14 @@
 			</s:DynamicStreamingVideoSource>
 		</s:source>
 	</s:VideoDisplay>
+	<s:Group id="waittingDlg" x="0" y="0" width="480" height="360">
+		<s:Image x="0" y="0" width="480" height="360" backgroundAlpha="1.0" smooth="false"
+				 source="{imgWaitting}"/>
+		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#FFFFFF" fontFamily="NanumGothic" fontSize="27"
+				 fontWeight="bold" horizontalCenter="0" text="현재 방송중이 아닙니다!" textAlign="center"
+				 verticalAlign="middle" verticalCenter="0"/>
+		<s:Label id="lblStateD"  backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
+				 fontWeight="bold" horizontalCenter="-2" text="현재 방송중이 아닙니다!" textAlign="center"
+				 verticalAlign="middle" verticalCenter="-2"/>
+	</s:Group>
 </mx:Application>
