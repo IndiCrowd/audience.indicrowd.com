@@ -6,15 +6,28 @@
 				initialize="init()" layout="absolute">
 	<fx:Script>
 		<![CDATA[
+			import mx.controls.Alert;
 			import mx.core.FlexGlobals;
 			import mx.rpc.events.ResultEvent;
 			
 			import org.osmf.events.MediaPlayerStateChangeEvent;
 			import org.osmf.media.*;
 			
-			[Embed(source="assets/waitting.png")]
+			[Embed(source="assets/wait_mic.swf")]
 			[Bindable]
-			public var imgWaitting:Class;   
+			public var movWaitting:Class;   
+			
+			
+			[Embed(source="../assets/wait.mp3")]
+			[Bindable]
+			public var mp3Waitting:Class;   
+			
+			public var waittingSound:mx.core.SoundAsset = new mp3Waitting() as mx.core.SoundAsset;
+			public var waittingSoundChannel:SoundChannel;
+			
+
+			public var nowState:String = "";
+			
 			
 			[Bindable]
 			private var serverInfoURL:String = "/server/streaming/optimal.json";
@@ -25,8 +38,19 @@
 			private var serverSubscribeStr:String;
 			[Bindable]
 			private var serverDefaltImage:String;
+			[Bindable]
+			private var remainTimeURL:String = "/concert/${concertId}/remainTime.json";
+			[Bindable]
+			private var concertStateURL:String = "/concert/${concertId}/state.json";
+			
+			[Bindable]
+			private var waitMute:Boolean;
 			
 			private var videoEventsDisabled:Boolean = false;
+			
+			private var handleUpdateRemainTime:uint;
+			
+			private var remainTime:int = 0;
 			
 			public function setServerSubscribeStr(substr:String):void
 			{
@@ -47,18 +71,83 @@
 			
 			private function init():void
 			{		
+				var serverStreamStr:String = FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
 				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_360p";
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
 				urlPrefix =  FlexGlobals.topLevelApplication.parameters.urlPrefix;
 				serverInfoURL = urlPrefix + serverInfoURL;
+				concertStateURL = urlPrefix + concertStateURL;
+				concertStateURL = concertStateURL.replace("${concertId}", serverStreamStr);
+				remainTimeURL = urlPrefix + remainTimeURL;
+				remainTimeURL = remainTimeURL.replace("${concertId}", serverStreamStr);
+				
+				handleUpdateRemainTime = setInterval(updateRemainTime, 1000);
 				
 				// Callback 함수 등록
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
 				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
-				flash.external.ExternalInterface.addCallback("expiredVideo", expiredVideo);
+				flash.external.ExternalInterface.addCallback("changeState", changeState);
+				
+				
+//				waittingSound = new Sound(new URLRequest("../assets/wait.mp3"));
 				
 				serverInfoService.send();
+				concertStateService.send();
+				
+			}
+			
+			private function updateRemainTime():void
+			{
+				var remainTimeText:String = "";
+				this.remainTime--;
+				
+				
+				if (nowState == "RESERVE" || nowState == "REHEARSAL") 
+				{
+					var hours:int = remainTime / 3600;
+					var minutes:int = (remainTime % 3600 ) / 60 ;
+					var seconds:int = (remainTime % 3600 ) % 60;
+					
+					if (hours != 0)
+					{
+						if ( hours < 10 ) {
+							remainTimeText += "0";
+						}
+						remainTimeText += hours + ":";
+					}
+					
+					
+					if ( minutes < 10 ) {
+						remainTimeText += "0";
+					}
+					remainTimeText += minutes + ":";
+					
+					
+					if ( seconds < 10 ) {
+						remainTimeText += "0";
+					}
+					remainTimeText += seconds;
+					
+					setTextMessage("공연까지 아직 시간이 남았습니다.\n" + remainTimeText);
+				} 
+				else if (nowState == "PLAYING") 
+				{
+					if (remainTime == 300) // 5분
+					{
+						lblNotice.text = "5분 남았습니다! 좀 더 응원해봐요!!";
+						showNotice.play();
+					} 
+					else if (remainTime == 60) // 1분
+					{
+						lblNotice.text = "마지막 1분입니다!";
+						showNotice.play();
+					}
+				} 
+				else if (nowState == "ENCORE")
+				{
+					
+				}
 			}
 			
 			private function connectServerVideo():void
@@ -112,6 +201,46 @@
 				this.studioVideo.source = videoSource;
 			}
 			
+			
+			private function changeState(state:String):void {
+				nowState = state;
+				if (waittingSoundChannel != null)
+				{
+					waittingSoundChannel.stop();
+					waittingSoundChannel = null;
+				}
+				
+				if (state == "PLAYING" || state == "ENCORE")
+				{
+					this.videoEventsDisabled = false;
+					this.studioVideo.source = videoSource;
+					setTextMessage("현재 방송중이 아닙니다.");
+				}
+				else if (state == "RESERVE" || state == "REHEARSAL") 
+				{
+					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+					setTextMessage("공연까지 아직 시간이 남았습니다.");
+				}
+				else if (state == "END") 
+				{
+					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+					this.studioVideo.source = null;
+					waittingDlg.visible = true;
+					this.videoEventsDisabled = true;
+					setTextMessage("즐거운 공연이 되었나요?\n공연이 끝났습니다.");
+				}
+				else 
+				{
+					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+					this.studioVideo.source = null;
+					waittingDlg.visible = true;
+					this.videoEventsDisabled = true;
+					setTextMessage("공연이 실패하였습니다.");
+				}
+				
+				remainTimeService.send();
+			}
+			
 			private function readServerInfo(event:ResultEvent):void
 			{				
 				var result:Object = JSON.parse(event.result as String);
@@ -122,15 +251,66 @@
 				this.studioVideo.play();
 			}
 			
-			public function expiredVideo(message:String):void {
+			
+			private function readConcertState(event:ResultEvent):void
+			{				
+				var result:Object = JSON.parse(event.result as String);
+				
+				changeState(result.command);
+			}
+			
+			
+			private function readRemainTime(event:ResultEvent):void
+			{				
+				var result:Object = JSON.parse(event.result as String);
+				
+				// 시각 등록
+				remainTime =  parseInt(result.long) / 1000;
+				trace("remainTime : " + remainTime);
+			}
+			
+			private function setTextMessage(message:String):void {
 				lblStateU.text = message;
 				lblStateD.text = message;
 			}
+			
+			protected function chkWaitMute_changeHandler(event:Event):void
+			{
+				if (event.currentTarget == chkWaitMute)
+				{
+					waitMute = chkWaitMute.selected;
+					
+					if (waitMute || nowState == "PLAYING" || nowState == "ENCORE") {
+						if (waittingSoundChannel != null)
+						{
+							waittingSoundChannel.stop();
+							waittingSoundChannel = null;
+						}
+					} else {
+						if (waittingSoundChannel == null) {
+							waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+						}
+					}
+				}
+			}
+			
 		]]>
 	</fx:Script>
 	<fx:Declarations>
 		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		<s:Sequence id="showNotice" target="{lblNotice}">
+			<s:Fade duration="1000"	alphaFrom="0" alphaTo="1"/>
+			<s:Fade duration="2000"	alphaFrom="1" alphaTo="0"/>	
+		</s:Sequence>
 		<mx:HTTPService id="serverInfoService" url="{serverInfoURL}" useProxy="false" method="GET" result="readServerInfo(event)" showBusyCursor="true">
+			<mx:request xmlns="">
+			</mx:request>
+		</mx:HTTPService>
+		<mx:HTTPService id="concertStateService" url="{concertStateURL}" useProxy="false" method="GET" result="readConcertState(event)" showBusyCursor="true">
+			<mx:request xmlns="">
+			</mx:request>
+		</mx:HTTPService>
+		<mx:HTTPService id="remainTimeService" url="{remainTimeURL}" useProxy="false" method="GET" result="readRemainTime(event)" showBusyCursor="true">
 			<mx:request xmlns="">
 			</mx:request>
 		</mx:HTTPService>
@@ -143,14 +323,20 @@
 			</s:DynamicStreamingVideoSource>
 		</s:source>
 	</s:VideoDisplay>
+	<s:Label id="lblLiveMark" visible="false" x="0" y="0" width="60" height="31"
+			 backgroundColor="#FF0000" color="#FFFFFF" fontFamily="Arial" fontSize="16"
+			 fontWeight="bold" text="LIVE" textAlign="center" verticalAlign="middle"/>
 	<s:Group id="waittingDlg" x="0" y="0" width="480" height="360">
-		<s:Image x="0" y="0" width="480" height="360" backgroundAlpha="1.0" smooth="false"
-				 source="{imgWaitting}"/>
-		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#FFFFFF" fontFamily="NanumGothic" fontSize="27"
+		<mx:SWFLoader x="0" y="0" width="480" height="360" source="{movWaitting}"/>
+		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="0" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="0"/>
-		<s:Label id="lblStateD"  backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
+		<s:Label id="lblStateD"  backgroundAlpha="1.0" color="#FFFFFF" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="-2" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="-2"/>
+		<s:Label id="lblNotice" x="64" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
+				 textAlign="left" verticalAlign="middle"/>
+		<s:CheckBox id="chkWaitMute" x="10" y="336" label="대기음 음소거" color="#FFFFFF" change="chkWaitMute_changeHandler(event)" />
 	</s:Group>
+	
 </mx:Application>
