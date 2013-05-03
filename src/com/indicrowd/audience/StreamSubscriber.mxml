@@ -282,6 +282,10 @@
 			}
 			
 			private function playWaitSound():SoundChannel {
+				if (this.waittingSoundChannel != null) {
+					return this.waittingSoundChannel;
+				}
+				
 				var waittingSoundChannel:SoundChannel = waittingSound.play(0, int.MAX_VALUE, new SoundTransform(0, 0));
 				
 				clearInterval(handleWaitingSoundVolume);
