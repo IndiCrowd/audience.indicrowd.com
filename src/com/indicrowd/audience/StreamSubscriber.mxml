@@ -155,21 +155,6 @@
 				studioVideo.play();
 			}
 			
-			private function ncOnStatus(infoObject:NetStatusEvent):void
-			{
-				trace("nc: "+infoObject.info.code+" ("+infoObject.info.description+")");
-				
-				if (infoObject.info.code == "NetConnection.Connect.Failed")
-				{
-					// 접속 실패
-				} else if (infoObject.info.code == "NetConnection.Connect.Rejected") {
-					// 연결 거부
-				} else if (infoObject.info.code == "NetConnection.Connect.Success") {
-					
-				}
-			}
-			
-			
 			protected function studioVideo_mediaPlayerStateChangeHandler(event:MediaPlayerStateChangeEvent):void
 			{
 				if (this.videoEventsDisabled)
