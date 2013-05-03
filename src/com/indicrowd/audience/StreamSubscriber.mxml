@@ -26,8 +26,7 @@
 			public var waittingSoundChannel:SoundChannel;
 			
 
-			public var nowState:String = "";
-			
+			public var nowState:String = "";			
 			
 			[Bindable]
 			private var serverInfoURL:String = "/server/streaming/optimal.json";
@@ -49,6 +48,7 @@
 			private var videoEventsDisabled:Boolean = false;
 			
 			private var handleUpdateRemainTime:uint;
+			private var handleWaitingSoundVolume:uint;
 			
 			private var remainTime:int = 0;
 			
@@ -167,7 +167,10 @@
 				{
 					waittingDlg.visible = true;
 					resetVideo();
-				} else if (event.state == MediaPlayerState.PLAYING) {
+				} else if (event.state == MediaPlayerState.PAUSED) {
+					studioVideo.play();
+				}
+				else if (event.state == MediaPlayerState.PLAYING) {
 					waittingDlg.visible = false;
 				}
 			}
@@ -203,12 +206,12 @@
 				}
 				else if (state == "RESERVE" || state == "REHEARSAL") 
 				{
-					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+					waittingSoundChannel = playWaitSound();
 					setTextMessage("공연까지 아직 시간이 남았습니다.");
 				}
 				else if (state == "END") 
 				{
-					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+					waittingSoundChannel = playWaitSound();
 					this.studioVideo.source = null;
 					waittingDlg.visible = true;
 					this.videoEventsDisabled = true;
@@ -216,11 +219,10 @@
 				}
 				else 
 				{
-					waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
 					this.studioVideo.source = null;
 					waittingDlg.visible = true;
 					this.videoEventsDisabled = true;
-					setTextMessage("공연이 실패하였습니다.");
+					setTextMessage("잘 못된 접속입니다.");
 				}
 				
 				remainTimeService.send();
@@ -273,12 +275,35 @@
 						}
 					} else {
 						if (waittingSoundChannel == null) {
-							waittingSoundChannel = waittingSound.play(0, int.MAX_VALUE);
+							waittingSoundChannel = playWaitSound();
 						}
 					}
 				}
 			}
 			
+			private function playWaitSound():SoundChannel {
+				var waittingSoundChannel:SoundChannel = waittingSound.play(0, int.MAX_VALUE, new SoundTransform(0, 0));
+				
+				clearInterval(handleWaitingSoundVolume);
+				handleWaitingSoundVolume = setInterval(playWaitVolumeControl, 200);
+				
+				return waittingSoundChannel;
+			}
+			
+			
+			private function playWaitVolumeControl():void {
+				
+				if (waittingSoundChannel == null) {
+					clearInterval(handleWaitingSoundVolume);
+					return ;
+				}
+				
+				if (waittingSoundChannel.soundTransform.volume < 0.5) {
+					waittingSoundChannel.soundTransform = new SoundTransform(0.025 + waittingSoundChannel.soundTransform.volume, 0);
+				} else {
+					clearInterval(handleWaitingSoundVolume);
+				}
+			}
 		]]>
 	</fx:Script>
 	<fx:Declarations>
