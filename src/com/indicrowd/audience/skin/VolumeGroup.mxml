@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 width="35" height="35" minWidth="35" mouseChildren="true" rollOut="mouseHandler(event)"
+		 rollOver="mouseHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ItemResponder;
+			import mx.controls.Alert;
+			import mx.core.Application;
+			import mx.core.BitmapAsset;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			[Embed(source="assets/speaker_big.png")]
+			[Bindable]
+			private var clsSpeakerBig:Class;
+			private var speakerBig:BitmapAsset = new clsSpeakerBig(); 
+			
+			[Embed(source="assets/speaker_little.png")]
+			[Bindable]
+			private var clsSpeakerLittle:Class;
+			private var speakerLittle:BitmapAsset = new clsSpeakerLittle(); 
+			
+			[Embed(source="assets/speaker_mute.png")]
+			[Bindable]
+			private var clsSpeakerMute:Class;
+			private var speakerMute:BitmapAsset = new clsSpeakerMute(); 
+			
+			
+			
+			[Bindable]
+			private var _volume:Number = 0.0; 
+			private var prevVolume:Number;
+			private var muted:Boolean = false;
+			
+			public function set volume(volume:Number):void {
+				_volume = volume;
+				sliderVolume.value = volume;
+				
+				if (volume == 0.0) {
+					imgSpeaker.source = speakerMute;
+				} else if (volume <= 0.5) {
+					imgSpeaker.source = speakerLittle;
+				} else {
+					imgSpeaker.source = speakerBig;
+				}
+			}
+			
+			public function get volume():Number {
+				return _volume;
+			}
+			
+			protected function hslider1_changeHandler(event:Event):void
+			{
+				if (muted && sliderVolume.value > 0.0)
+					muted = false;
+				var volume:Number = sliderVolume.value;
+				this.volume = sliderVolume.value;
+				dispatchEvent(new VolumeEvent('changeVolume', sliderVolume.value));
+			}
+			
+			protected function mouseHandler(event:MouseEvent):void
+			{
+				switch(event.type) {
+					case "rollOver":
+						seqMouseOut.stop();
+						seqMouseOver.play();
+						break;
+					case "rollOut":
+						seqMouseOver.stop();
+						seqMouseOut.play();
+						break;
+				}
+			}
+			
+			
+			protected function imgSpeaker_clickHandler(event:MouseEvent):void
+			{
+				muted = !muted;
+				
+				if (muted) {
+					prevVolume = volume;
+					sliderVolume.value = 0.0;
+				} else {
+					sliderVolume.value = prevVolume;
+				}
+			}
+			
+			
+		]]>
+	</fx:Script>
+	<fx:Metadata>
+		[Event(name="changeVolume", type="com.indicrowd.audience.skin.VolumeEvent")]
+	</fx:Metadata>
+	<fx:Declarations>
+		<s:Parallel id="seqMouseOver">
+			<s:Resize widthFrom="{sliderVolume.width}" widthTo="75" duration="100" target="{sliderVolume}">
+			</s:Resize>
+			<s:Resize widthFrom="{width}" widthTo="{80+35}" duration="100" target="{this}">
+			</s:Resize>
+		</s:Parallel>
+		<s:Parallel id="seqMouseOut">
+			<s:Resize widthFrom="{sliderVolume.width}" widthTo="0" duration="1000" target="{sliderVolume}">
+			</s:Resize>
+			<s:Resize widthFrom="{width}" widthTo="35" duration="1000" target="{this}">
+			</s:Resize>
+		</s:Parallel>
+	</fx:Declarations>
+	
+	<s:Rect height="35" width="{width}">
+		<s:fill>
+			<s:SolidColor color="#EEEEEE" alpha=".8" />
+		</s:fill>
+	</s:Rect>
+	<s:Image id="imgSpeaker" x="0" y="0" width="35" height="35"
+			 click="imgSpeaker_clickHandler(event)"/>
+	<s:HSlider id="sliderVolume" x="35" y="7" width="0" minWidth="0"
+			   change="hslider1_changeHandler(event)" maximum="1.0" minimum="0.0"
+			   skinClass="com.indicrowd.audience.skin.VolumeSlider" stepSize="0.001"
+			   valueCommit="hslider1_changeHandler(event)"/>
+</s:Group>

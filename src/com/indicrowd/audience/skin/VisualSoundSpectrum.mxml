@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="128" height="35" initialize="init(event);">
+	<fx:Script>
+		<![CDATA[
+			import flash.utils.setInterval;
+			
+			private function init(event:Event):void {
+				setInterval(draw_spectrum, 200);
+			}
+			
+			private function draw_spectrum():void {
+				var bytes:ByteArray = new ByteArray();
+				const PLOT_HEIGHT:int = height/2;
+				const CHANNEL_LENGTH:int = 256;
+				
+				SoundMixer.computeSpectrum(bytes, false, 0);
+				
+				var g:Graphics = this.graphics;
+				
+				g.clear();
+				
+				g.beginFill(0xeeeeee, .8);
+				g.drawRect(0, 0, width, height);
+				g.endFill();
+				
+				g.lineStyle(0, 0x6600CC);
+				g.beginFill(0x6600CC);
+				g.moveTo(0, PLOT_HEIGHT);
+				
+				var n:Number = 0;
+				
+				for (var i:int = 0; i < CHANNEL_LENGTH; i++) {
+					n = (bytes.readFloat() * PLOT_HEIGHT);
+					g.lineTo(i * 2, PLOT_HEIGHT - n);
+				}
+				
+				g.lineTo(CHANNEL_LENGTH * 2, PLOT_HEIGHT);
+				g.endFill();
+				
+				g.lineStyle(0, 0xCC0066);
+				g.beginFill(0xCC0066, 0.5);
+				g.moveTo(CHANNEL_LENGTH * 2, PLOT_HEIGHT);
+				
+				for (i = CHANNEL_LENGTH/2; i > 0; i--) {
+					n = ((bytes.readFloat() + bytes.readFloat()) * PLOT_HEIGHT /2);
+					g.lineTo(i * 2, PLOT_HEIGHT - n);
+				}
+				
+				g.lineTo(0, PLOT_HEIGHT);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+</s:Group>

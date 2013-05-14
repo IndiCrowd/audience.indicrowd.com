@@ -2,10 +2,14 @@
 <mx:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
 				xmlns:s="library://ns.adobe.com/flex/spark"
 				xmlns:mx="library://ns.adobe.com/flex/mx"
+				xmlns:skin="com.indicrowd.audience.skin.*"
 				width="480" height="360" minWidth="480" minHeight="360" horizontalAlign="center"
-				initialize="init()" layout="absolute">
+				horizontalScrollPolicy="off" initialize="init()" layout="absolute"
+				verticalScrollPolicy="off">
 	<fx:Script>
 		<![CDATA[
+			import com.indicrowd.audience.skin.VolumeEvent;
+			
 			import mx.controls.Alert;
 			import mx.core.FlexGlobals;
 			import mx.rpc.events.ResultEvent;
@@ -95,6 +99,7 @@
 				serverInfoService.send();
 				concertStateService.send();
 				
+				ctrlVolume.volume = 1.0;
 			}
 			
 			private function updateRemainTime():void
@@ -146,7 +151,6 @@
 				} 
 				else if (nowState == "ENCORE")
 				{
-					
 				}
 			}
 			
@@ -261,26 +265,6 @@
 				lblStateD.text = message;
 			}
 			
-			protected function chkWaitMute_changeHandler(event:Event):void
-			{
-				if (event.currentTarget == chkWaitMute)
-				{
-					waitMute = chkWaitMute.selected;
-					
-					if (waitMute || nowState == "PLAYING" || nowState == "ENCORE") {
-						if (waittingSoundChannel != null)
-						{
-							waittingSoundChannel.stop();
-							waittingSoundChannel = null;
-						}
-					} else {
-						if (waittingSoundChannel == null) {
-							waittingSoundChannel = playWaitSound();
-						}
-					}
-				}
-			}
-			
 			private function playWaitSound():SoundChannel {
 				if (this.waittingSoundChannel != null) {
 					return this.waittingSoundChannel;
@@ -302,12 +286,38 @@
 					return ;
 				}
 				
-				if (waittingSoundChannel.soundTransform.volume < 0.5) {
+				if (waittingSoundChannel.soundTransform.volume < 0.3) {
 					waittingSoundChannel.soundTransform = new SoundTransform(0.025 + waittingSoundChannel.soundTransform.volume, 0);
 				} else {
 					clearInterval(handleWaitingSoundVolume);
 				}
 			}
+			
+			protected function changeVolumeHandler(event:VolumeEvent):void
+			{
+				if (event.obj as Number == 0.0) {
+					waitMute = true;
+					
+					if (waitMute || nowState == "PLAYING" || nowState == "ENCORE") {
+						if (waittingSoundChannel != null)
+						{
+							waittingSoundChannel.stop();
+							waittingSoundChannel = null;
+						}
+					}
+					
+				} else { 
+					waitMute = false;
+					if (!(nowState == "PLAYING" || nowState == "ENCORE")) {
+						if (waittingSoundChannel == null) {
+							waittingSoundChannel = playWaitSound();
+						}
+					}
+				}
+				
+				SoundMixer.soundTransform = new SoundTransform(event.obj as Number);
+			}
+			
 		]]>
 	</fx:Script>
 	<fx:Declarations>
@@ -337,9 +347,6 @@
 			</s:DynamicStreamingVideoSource>
 		</s:source>
 	</s:VideoDisplay>
-	<s:Label id="lblLiveMark" visible="false" x="0" y="0" width="60" height="31"
-			 backgroundColor="#FF0000" color="#FFFFFF" fontFamily="Arial" fontSize="16"
-			 fontWeight="bold" text="LIVE" textAlign="center" verticalAlign="middle"/>
 	<s:Group id="waittingDlg" x="0" y="0" width="480" height="360">
 		<mx:SWFLoader x="0" y="0" width="480" height="360" source="{movWaitting}"/>
 		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
@@ -348,9 +355,17 @@
 		<s:Label id="lblStateD"  backgroundAlpha="1.0" color="#FFFFFF" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="-2" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="-2"/>
-		<s:Label id="lblNotice" x="64" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
-				 textAlign="left" verticalAlign="middle"/>
-		<s:CheckBox id="chkWaitMute" x="10" y="336" label="대기음 음소거" color="#FFFFFF" change="chkWaitMute_changeHandler(event)" />
+		<s:Label id="lblNotice" x="226" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
+				 textAlign="center" verticalAlign="middle"/>
+	</s:Group>
+	<s:Label id="lblLiveMark" visible="false" x="0" y="0" width="60" height="31"
+			 backgroundColor="#FF0000" color="#FFFFFF" fontFamily="Arial" fontSize="16"
+			 fontWeight="bold" text="LIVE" textAlign="center" verticalAlign="middle"/>
+	<s:Group>
+		<skin:VolumeGroup id="ctrlVolume" x="0" y="325" changeVolume="changeVolumeHandler(event)">
+		</skin:VolumeGroup>
+		<skin:VisualSoundSpectrum x="352" y="325">
+		</skin:VisualSoundSpectrum>	
 	</s:Group>
 	
 </mx:Application>
