@@ -10,6 +10,7 @@
 			import mx.controls.Alert;
 			import mx.core.Application;
 			import mx.core.BitmapAsset;
+			import mx.effects.Fade;
 			import mx.events.FlexEvent;
 			import mx.events.ResizeEvent;
 			
@@ -28,7 +29,22 @@
 			private var clsSpeakerMute:Class;
 			private var speakerMute:BitmapAsset = new clsSpeakerMute(); 
 			
+			[Embed(source="assets/speaker_big_over.png")]
+			[Bindable]
+			private var clsSpeakerBigOver:Class;
+			private var speakerBigOver:BitmapAsset = new clsSpeakerBigOver(); 
 			
+			[Embed(source="assets/speaker_little_over.png")]
+			[Bindable]
+			private var clsSpeakerLittleOver:Class;
+			private var speakerLittleOver:BitmapAsset = new clsSpeakerLittleOver(); 
+			
+			[Embed(source="assets/speaker_mute_over.png")]
+			[Bindable]
+			private var clsSpeakerMuteOver:Class;
+			private var speakerMuteOver:BitmapAsset = new clsSpeakerMuteOver(); 
+			
+			private var speakerMouseOver:Boolean = false;
 			
 			[Bindable]
 			private var _volume:Number = 0.0; 
@@ -38,18 +54,35 @@
 			public function set volume(volume:Number):void {
 				_volume = volume;
 				sliderVolume.value = volume;
-				
-				if (volume == 0.0) {
-					imgSpeaker.source = speakerMute;
-				} else if (volume <= 0.5) {
-					imgSpeaker.source = speakerLittle;
-				} else {
-					imgSpeaker.source = speakerBig;
-				}
+				updateIcon();
 			}
 			
 			public function get volume():Number {
 				return _volume;
+			}
+			
+			private function updateIcon():void {
+				
+				if (speakerMouseOver)
+				{
+					if (_volume == 0.0) {
+						imgSpeaker.source = speakerMuteOver;
+					} else if (_volume <= 0.5) {
+						imgSpeaker.source = speakerLittleOver;
+					} else {
+						imgSpeaker.source = speakerBigOver;
+					}
+				}
+				else
+				{
+					if (_volume == 0.0) {
+						imgSpeaker.source = speakerMute;
+					} else if (_volume <= 0.5) {
+						imgSpeaker.source = speakerLittle;
+					} else {
+						imgSpeaker.source = speakerBig;
+					}
+				}
 			}
 			
 			protected function hslider1_changeHandler(event:Event):void
@@ -75,6 +108,18 @@
 				}
 			}
 			
+			protected function mouseSpeakerHandler(event:MouseEvent):void
+			{
+				switch(event.type) {
+					case "rollOut":
+						speakerMouseOver = false;
+						break;
+					case "rollOver":
+						speakerMouseOver = true;
+						break;
+				}
+				updateIcon();
+			}
 			
 			protected function imgSpeaker_clickHandler(event:MouseEvent):void
 			{
@@ -115,7 +160,7 @@
 		</s:fill>
 	</s:Rect>
 	<s:Image id="imgSpeaker" x="0" y="0" width="35" height="35"
-			 click="imgSpeaker_clickHandler(event)"/>
+			 click="imgSpeaker_clickHandler(event)" rollOut="mouseSpeakerHandler(event)" rollOver="mouseSpeakerHandler(event)" />
 	<s:HSlider id="sliderVolume" x="35" y="7" width="0" minWidth="0"
 			   change="hslider1_changeHandler(event)" maximum="1.0" minimum="0.0"
 			   skinClass="com.indicrowd.audience.skin.VolumeSlider" stepSize="0.001"
