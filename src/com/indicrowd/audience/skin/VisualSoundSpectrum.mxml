@@ -12,10 +12,10 @@
 			
 			private function draw_spectrum():void {
 				var bytes:ByteArray = new ByteArray();
-				const PLOT_HEIGHT:int = height/2;
+				const PLOT_HEIGHT:int = height;
 				const CHANNEL_LENGTH:int = 256;
 				
-				SoundMixer.computeSpectrum(bytes, false, 0);
+				SoundMixer.computeSpectrum(bytes, true);
 				
 				var g:Graphics = this.graphics;
 				
