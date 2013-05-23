@@ -76,7 +76,7 @@
 			private function init():void
 			{		
 				var serverStreamStr:String = FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
-				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_480p";
+				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "";
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
 				urlPrefix =  FlexGlobals.topLevelApplication.parameters.urlPrefix;
 				serverInfoURL = urlPrefix + serverInfoURL;
@@ -346,8 +346,11 @@
 	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360" 
 					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)" >
 		<s:source>
-			<s:DynamicStreamingVideoSource id="videoSource" streamType="live" host="{serverVideoAddr}" >
-				<s:DynamicStreamingVideoItem streamName="{serverSubscribeStr}" />
+			<s:DynamicStreamingVideoSource id="videoSource" streamType="live"  host="{serverVideoAddr}" >
+				<s:DynamicStreamingVideoItem id="stream_480p" streamName="{serverSubscribeStr + '_480p'}" bitrate="1060" />
+				<s:DynamicStreamingVideoItem id="stream_360p" streamName="{serverSubscribeStr + '_360p'}" bitrate="660" />
+				<s:DynamicStreamingVideoItem id="stream_240p" streamName="{serverSubscribeStr + '_240p'}" bitrate="410" />
+				<s:DynamicStreamingVideoItem id="stream_160p" streamName="{serverSubscribeStr + '_160p'}" bitrate="260" />
 			</s:DynamicStreamingVideoSource>
 		</s:source>
 	</s:VideoDisplay>
