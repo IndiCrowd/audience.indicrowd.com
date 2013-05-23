@@ -76,7 +76,7 @@
 			private function init():void
 			{		
 				var serverStreamStr:String = FlexGlobals.topLevelApplication.parameters.serverSubscribeStr;
-				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_360p";
+				serverSubscribeStr =  "" +FlexGlobals.topLevelApplication.parameters.serverSubscribeStr + "_480p";
 				serverDefaltImage =  FlexGlobals.topLevelApplication.parameters.serverDefaltImage;
 				urlPrefix =  FlexGlobals.topLevelApplication.parameters.urlPrefix;
 				serverInfoURL = urlPrefix + serverInfoURL;
@@ -133,6 +133,10 @@
 						remainTimeText += "0";
 					}
 					remainTimeText += seconds;
+					
+					if (remainTime < 0 ) {
+						remainTimeText = "00:00:00";
+					}
 					
 					setTextMessage("공연까지 아직 시간이 남았습니다.\n" + remainTimeText);
 				} 
@@ -339,10 +343,10 @@
 			</mx:request>
 		</mx:HTTPService>
 	</fx:Declarations>
-	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360"
-					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)"  >
+	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360" 
+					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)" >
 		<s:source>
-			<s:DynamicStreamingVideoSource id="videoSource" streamType="live" host="{serverVideoAddr}">
+			<s:DynamicStreamingVideoSource id="videoSource" streamType="live" host="{serverVideoAddr}" >
 				<s:DynamicStreamingVideoItem streamName="{serverSubscribeStr}" />
 			</s:DynamicStreamingVideoSource>
 		</s:source>
@@ -355,8 +359,6 @@
 		<s:Label id="lblStateD"  backgroundAlpha="1.0" color="#FFFFFF" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="-2" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="-2"/>
-		<s:Label id="lblNotice" x="226" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
-				 textAlign="center" verticalAlign="middle"/>
 	</s:Group>
 	<s:Label id="lblLiveMark" visible="false" x="0" y="0" width="60" height="31"
 			 backgroundColor="#FF0000" color="#FFFFFF" fontFamily="Arial" fontSize="16"
@@ -364,8 +366,10 @@
 	<s:Group>
 		<skin:VolumeGroup id="ctrlVolume" x="0" y="325" changeVolume="changeVolumeHandler(event)">
 		</skin:VolumeGroup>
-		<skin:VisualSoundSpectrum x="352" y="325">
+		 <skin:VisualSoundSpectrum x="352" y="325">
 		</skin:VisualSoundSpectrum>	
 	</s:Group>
 	
+	<s:Label id="lblNotice" x="226" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
+			 textAlign="center" verticalAlign="middle"/>
 </mx:Application>
