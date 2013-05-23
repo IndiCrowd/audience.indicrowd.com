@@ -11,7 +11,7 @@
 			}
 			
 			private function draw_spectrum():void {
-				var bytes:ByteArray = new ByteArray();
+					var bytes:ByteArray = new ByteArray();
 				const PLOT_HEIGHT:int = height;
 				const CHANNEL_LENGTH:int = 256;
 				
@@ -33,19 +33,25 @@
 				
 				for (var i:int = 0; i < CHANNEL_LENGTH; i++) {
 					n = (bytes.readFloat() * PLOT_HEIGHT);
-					g.lineTo(i * 2, PLOT_HEIGHT - n);
+					g.lineTo(i, PLOT_HEIGHT - n);
 				}
 				
-				g.lineTo(CHANNEL_LENGTH * 2, PLOT_HEIGHT);
+				g.lineTo(CHANNEL_LENGTH, PLOT_HEIGHT);
 				g.endFill();
 				
 				g.lineStyle(0, 0xCC0066);
 				g.beginFill(0xCC0066, 0.5);
-				g.moveTo(CHANNEL_LENGTH * 2, PLOT_HEIGHT);
+				g.moveTo(CHANNEL_LENGTH, PLOT_HEIGHT);
 				
 				for (i = CHANNEL_LENGTH/2; i > 0; i--) {
-					n = ((bytes.readFloat() + bytes.readFloat()) * PLOT_HEIGHT /2);
-					g.lineTo(i * 2, PLOT_HEIGHT - n);
+					var p:Number = bytes.readFloat() + bytes.readFloat();
+					p /= 2.0;
+					if (p != 0)
+						trace(p);
+					
+					n = (p) * PLOT_HEIGHT;
+					
+					g.lineTo(i, PLOT_HEIGHT - n);
 				}
 				
 				g.lineTo(0, PLOT_HEIGHT);
