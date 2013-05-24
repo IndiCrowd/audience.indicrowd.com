@@ -3,15 +3,21 @@
 				xmlns:s="library://ns.adobe.com/flex/spark"
 				xmlns:mx="library://ns.adobe.com/flex/mx"
 				xmlns:skin="com.indicrowd.audience.skin.*"
+				xmlns:player="com.indicrowd.audience.player.*"
 				width="480" height="360" minWidth="480" minHeight="360" horizontalAlign="center"
 				horizontalScrollPolicy="off" initialize="init()" layout="absolute"
 				verticalScrollPolicy="off">
 	<fx:Script>
 		<![CDATA[
+			import com.indicrowd.audience.player.VideoDisplay2Event;
+			import com.indicrowd.audience.player.VideoDisplay2State;
 			import com.indicrowd.audience.skin.VolumeEvent;
+			
+			import flash.utils.setTimeout;
 			
 			import mx.controls.Alert;
 			import mx.core.FlexGlobals;
+			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
 			
 			import org.osmf.events.MediaPlayerStateChangeEvent;
@@ -27,8 +33,7 @@
 			public var mp3Waitting:Class;   
 			
 			public var waittingSound:mx.core.SoundAsset = new mp3Waitting() as mx.core.SoundAsset;
-			public var waittingSoundChannel:SoundChannel;
-			
+			public var waittingSoundChannel:SoundChannel;		
 
 			public var nowState:String = "";			
 			
@@ -54,6 +59,8 @@
 			private var handleUpdateRemainTime:uint;
 			private var handleWaitingSoundVolume:uint;
 			
+			private var canConnect:Boolean = false;
+			
 			private var remainTime:int = 0;
 			
 			public function setServerSubscribeStr(substr:String):void
@@ -67,11 +74,6 @@
 				serverDefaltImage = img;	
 			}
 			
-			
-			public function playStudioVideo():void
-			{
-				connectServerVideo();
-			}
 			
 			private function init():void
 			{		
@@ -90,10 +92,9 @@
 				// Callback 함수 등록
 				flash.external.ExternalInterface.addCallback("setServerSubscribeStr", setServerSubscribeStr);
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
-				flash.external.ExternalInterface.addCallback("playStudioVideo", playStudioVideo);
 				flash.external.ExternalInterface.addCallback("changeState", changeState);
 				
-				
+			
 //				waittingSound = new Sound(new URLRequest("../assets/wait.mp3"));
 				
 				serverInfoService.send();
@@ -158,48 +159,7 @@
 				}
 			}
 			
-			private function connectServerVideo():void
-			{
-				studioVideo.play();
-			}
-			
-			protected function studioVideo_mediaPlayerStateChangeHandler(event:MediaPlayerStateChangeEvent):void
-			{
-				if (this.videoEventsDisabled)
-				{
-					return;
-				}
-				
-				//something went wrong
-				if (event.state ==  MediaPlayerState.PLAYBACK_ERROR)
-				{
-					waittingDlg.visible = true;
-					resetVideo();
-				} else if (event.state == MediaPlayerState.PAUSED) {
-					studioVideo.play();
-				}
-				else if (event.state == MediaPlayerState.PLAYING) {
-					waittingDlg.visible = false;
-				}
-			}
-			
-			private function resetVideo():void
-			{
-				this.videoEventsDisabled = true;
-				var videoSource:DynamicStreamingVideoSource = this.studioVideo.source as DynamicStreamingVideoSource;
-
-				setTimeout(resetVideoSource, 1000, videoSource);
-			}
-			
-			private function resetVideoSource(videoSource:DynamicStreamingVideoSource):void
-			{
-				this.videoEventsDisabled = false;
-				this.studioVideo.source = videoSource;
-			}
-			
-			
 			private function changeState(state:String):void {
-				nowState = state;
 				if (waittingSoundChannel != null)
 				{
 					waittingSoundChannel.stop();
@@ -207,10 +167,15 @@
 				}
 				
 				if (state == "PLAYING" || state == "ENCORE")
-				{
+				{	
 					this.videoEventsDisabled = false;
-					this.studioVideo.source = videoSource;
 					setTextMessage("현재 방송중이 아닙니다.");
+					
+					if (nowState != "PLAYING" && nowState != "ENCORE") {
+						canConnect = true;
+						studioVideo.connect();
+					}
+					
 				}
 				else if (state == "RESERVE" || state == "REHEARSAL") 
 				{
@@ -220,7 +185,6 @@
 				else if (state == "END") 
 				{
 					waittingSoundChannel = playWaitSound();
-					this.studioVideo.source = null;
 					waittingDlg.visible = true;
 					this.videoEventsDisabled = true;
 					setTextMessage("즐거운 공연이 되었나요?\n공연이 끝났습니다.");
@@ -233,6 +197,8 @@
 					setTextMessage("잘 못된 접속입니다.");
 				}
 				
+				nowState = state;
+				
 				remainTimeService.send();
 			}
 			
@@ -242,8 +208,12 @@
 				
 				serverVideoAddr = "rtmp://" + result.command.hostname + ":" + result.command.rtmpPort + "/live";
 				
-				this.studioVideo.source = videoSource;
-				this.studioVideo.play();
+				studioVideo.source = serverVideoAddr;
+				
+				if (canConnect)
+				{
+					studioVideo.connect();
+				}
 			}
 			
 			
@@ -322,6 +292,31 @@
 				SoundMixer.soundTransform = new SoundTransform(event.obj as Number);
 			}
 			
+			protected function WevService_faultHandler(event:FaultEvent):void
+			{
+				lblEndMark.visible = true;
+			}
+			
+			protected function studioVideo_changeStateHandler(event:VideoDisplay2Event):void
+			{
+				switch (event.state) 
+				{
+					case VideoDisplay2State.PLAY:
+						waittingDlg.visible = false;
+						
+						break;
+					case VideoDisplay2State.STOP:
+						waittingDlg.visible = true;
+						
+						break;
+					case VideoDisplay2State.FAULT:
+						waittingDlg.visible = true;
+						lblEndMark.visible = true;
+						
+						break;
+				}
+			}
+			
 		]]>
 	</fx:Script>
 	<fx:Declarations>
@@ -330,7 +325,7 @@
 			<s:Fade duration="1000"	alphaFrom="0" alphaTo="1"/>
 			<s:Fade duration="2000"	alphaFrom="1" alphaTo="0"/>	
 		</s:Sequence>
-		<mx:HTTPService id="serverInfoService" url="{serverInfoURL}" useProxy="false" method="GET" result="readServerInfo(event)" showBusyCursor="true">
+		<mx:HTTPService id="serverInfoService" url="{serverInfoURL}" useProxy="false" method="GET" fault="WevService_faultHandler(event)" result="readServerInfo(event)" showBusyCursor="true">
 			<mx:request xmlns="">
 			</mx:request>
 		</mx:HTTPService>
@@ -343,19 +338,9 @@
 			</mx:request>
 		</mx:HTTPService>
 	</fx:Declarations>
-	<s:VideoDisplay id="studioVideo" x="0" y="0" width="480" height="360" 
-					mediaPlayerStateChange="studioVideo_mediaPlayerStateChangeHandler(event)" >
-		<s:source>
-			<s:DynamicStreamingVideoSource id="videoSource" streamType="live"  host="{serverVideoAddr}" >
-				<s:DynamicStreamingVideoItem id="stream_480p" streamName="{serverSubscribeStr + '_480p'}" bitrate="1060" />
-				<s:DynamicStreamingVideoItem id="stream_360p" streamName="{serverSubscribeStr + '_360p'}" bitrate="660" />
-				<s:DynamicStreamingVideoItem id="stream_240p" streamName="{serverSubscribeStr + '_240p'}" bitrate="410" />
-				<s:DynamicStreamingVideoItem id="stream_160p" streamName="{serverSubscribeStr + '_160p'}" bitrate="260" />
-			</s:DynamicStreamingVideoSource>
-		</s:source>
-	</s:VideoDisplay>
+	<player:VideoDisplay2 id="studioVideo" x="0" y="0" width="480" height="360" streamName="{serverSubscribeStr}" changeState="studioVideo_changeStateHandler(event)"/>
 	<s:Group id="waittingDlg" x="0" y="0" width="480" height="360">
-		<mx:SWFLoader x="0" y="0" width="480" height="360" source="{movWaitting}"/>
+		<mx:SWFLoader id="waittingMovie" x="0" y="0" width="480" height="360" source="{movWaitting}"/>
 		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="0" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="0"/>
@@ -369,10 +354,14 @@
 	<s:Group>
 		<skin:VolumeGroup id="ctrlVolume" x="0" y="325" changeVolume="changeVolumeHandler(event)">
 		</skin:VolumeGroup>
-		 <skin:VisualSoundSpectrum x="352" y="325">
+		<skin:VisualSoundSpectrum x="352" y="325">
 		</skin:VisualSoundSpectrum>	
 	</s:Group>
 	
 	<s:Label id="lblNotice" x="226" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
 			 textAlign="center" verticalAlign="middle"/>
+	
+	<s:Label id="lblEndMark" visible="false" color="#FFFFFF" fontFamily="Arial"
+			 fontSize="12" fontWeight="bold" text="통신 상황이 좋지 않습니다. &#xd;인터넷 상태를 다시 확인하시고 리프레쉬해주세요. &#xd;반복해서 발생하면 관리자에게 연락해주세요." textAlign="center" verticalAlign="middle"/>
+
 </mx:Application>
