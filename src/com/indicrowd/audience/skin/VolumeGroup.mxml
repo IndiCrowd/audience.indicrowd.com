@@ -2,7 +2,7 @@
 <s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
 		 xmlns:s="library://ns.adobe.com/flex/spark"
 		 xmlns:mx="library://ns.adobe.com/flex/mx"
-		 width="35" height="35" minWidth="35" mouseChildren="true" rollOut="mouseHandler(event)"
+		 width="25" height="25" minWidth="25" mouseChildren="true" rollOut="mouseHandler(event)"
 		 rollOver="mouseHandler(event)">
 	<fx:Script>
 		<![CDATA[
@@ -141,15 +141,15 @@
 	</fx:Metadata>
 	<fx:Declarations>
 		<s:Parallel id="seqMouseOver">
-			<s:Resize widthFrom="{sliderVolume.width}" widthTo="75" duration="100" target="{sliderVolume}">
+			<s:Resize widthFrom="{sliderVolume.width}" widthTo="68" duration="100" target="{sliderVolume}">
 			</s:Resize>
-			<s:Resize widthFrom="{width}" widthTo="{80+35}" duration="100" target="{this}">
+			<s:Resize widthFrom="{width}" widthTo="{75+25}" duration="100" target="{this}">
 			</s:Resize>
 		</s:Parallel>
 		<s:Parallel id="seqMouseOut">
 			<s:Resize widthFrom="{sliderVolume.width}" widthTo="0" duration="1000" target="{sliderVolume}">
 			</s:Resize>
-			<s:Resize widthFrom="{width}" widthTo="35" duration="1000" target="{this}">
+			<s:Resize widthFrom="{width}" widthTo="25" duration="1000" target="{this}">
 			</s:Resize>
 		</s:Parallel>
 	</fx:Declarations>
@@ -159,9 +159,9 @@
 			<s:SolidColor color="#EEEEEE" alpha=".8" />
 		</s:fill>
 	</s:Rect>
-	<s:Image id="imgSpeaker" x="0" y="0" width="35" height="35"
+	<s:Image id="imgSpeaker" x="0" y="0" width="25" height="25"
 			 click="imgSpeaker_clickHandler(event)" rollOut="mouseSpeakerHandler(event)" rollOver="mouseSpeakerHandler(event)" />
-	<s:HSlider id="sliderVolume" x="35" y="7" width="0" minWidth="0"
+	<s:HSlider id="sliderVolume" x="25" y="4" width="0" minWidth="0"
 			   change="hslider1_changeHandler(event)" maximum="1.0" minimum="0.0"
 			   skinClass="com.indicrowd.audience.skin.VolumeSlider" stepSize="0.001"
 			   valueCommit="hslider1_changeHandler(event)"/>

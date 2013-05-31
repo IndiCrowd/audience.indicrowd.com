@@ -9,10 +9,10 @@ package com.indicrowd.audience.player
 	import mx.events.ResizeEvent;
 	import mx.rpc.Fault;
 	
-	[Event(name="changeState", type="com.indicrowd.audience.player.VideoDisplay2Event")]
+	[Event(name="changeState", type="com.indicrowd.audience.player.VideoDisplay2StatusEvent")]
+	[Event(name="changeResolution", type="com.indicrowd.audience.player.VideoDisplay2ResolutionEvent")]
 	public class VideoDisplay2 extends UIComponent
-	{		
-		
+	{
 		private var _video:Video = null;
 		
 		private var _netConnection:NetConnection = null;
@@ -80,14 +80,14 @@ package com.indicrowd.audience.player
 				_netStream.startBufferLength = 1;
 				_netStream.preferredBufferLength = 10;
 				_netStream.aggressiveModeBufferLength = 5;
-				_netStream.bufferTime = 2;
+				_netStream.bufferTime = 1;
 				
 				_netStream.addEventListener(NetStatusEvent.NET_STATUS, ncStreamStatus);
 				
 				var dsi:DynamicStreamItem = new DynamicStreamItem();
-				dsi.addStream(streamName + "_480p", 1060);
+				dsi.addStream(streamName + "_480p", 860);
 				dsi.addStream(streamName + "_360p", 660);
-				dsi.addStream(streamName + "_240p", 410);
+				dsi.addStream(streamName + "_240p", 420);
 				dsi.addStream(streamName + "_160p", 260);
 				
 				_netStream.startPlay(dsi);
@@ -119,7 +119,7 @@ package com.indicrowd.audience.player
 			
 			if (source == null)
 			{
-				dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.STOP));
+				dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.STOP));
 				return false;
 			}
 			
@@ -146,9 +146,9 @@ package com.indicrowd.audience.player
 			state = VideoDisplay2State.FAULT;
 			
 			if (fault) {
-				dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.FAULT));
+				dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.FAULT));
 			} else {
-				dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.STOP));
+				dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.STOP));
 			}
 		}
 		
@@ -156,7 +156,7 @@ package com.indicrowd.audience.player
 			if (_netConnection.connected)
 				_netConnection.close();
 			
-			dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.STOP));
+			dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.STOP));
 		}
 		
 		protected function ncStreamStatus(infoObject:NetStatusEvent):void
@@ -167,14 +167,14 @@ package com.indicrowd.audience.player
 			{
 				case "NetStream.Play.StreamNotFound":
 				case "NetStream.Play.UnpublishNotify":
-					dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.STOP));
+					dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.STOP));
 					break;
 				case "NetStream.Play.PublishNotify":
 					play();
 					break;
 				case "NetStream.Play.Start":
 					
-					dispatchEvent(new VideoDisplay2Event("changeState", VideoDisplay2State.PLAY));
+					dispatchEvent(new VideoDisplay2StatusEvent("changeState", VideoDisplay2State.PLAY));
 					
 					_video.attachNetStream(_netStream);
 					

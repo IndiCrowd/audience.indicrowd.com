@@ -5,12 +5,13 @@
 				xmlns:skin="com.indicrowd.audience.skin.*"
 				xmlns:player="com.indicrowd.audience.player.*"
 				width="480" height="360" minWidth="480" minHeight="360" horizontalAlign="center"
+				backgroundColor="#000000"
 				horizontalScrollPolicy="off" initialize="init()" layout="absolute"
 				verticalScrollPolicy="off">
 	<fx:Script>
 		<![CDATA[
-			import com.indicrowd.audience.player.VideoDisplay2Event;
 			import com.indicrowd.audience.player.VideoDisplay2State;
+			import com.indicrowd.audience.player.VideoDisplay2StatusEvent;
 			import com.indicrowd.audience.skin.VolumeEvent;
 			
 			import flash.utils.setTimeout;
@@ -94,13 +95,45 @@
 				flash.external.ExternalInterface.addCallback("setServerDefaultImage", setServerDefaultImage);
 				flash.external.ExternalInterface.addCallback("changeState", changeState);
 				
-			
-//				waittingSound = new Sound(new URLRequest("../assets/wait.mp3"));
+				//Full screen
+				systemManager.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullscreenHandler);
 				
 				serverInfoService.send();
 				concertStateService.send();
 				
 				ctrlVolume.volume = 1.0;
+			}
+			
+			private function fullscreenHandler(evt:FullScreenEvent):void {
+				if (evt.fullScreen)
+				{
+					imgScreenNarrow.visible = true;
+					imgScreenExapnd.visible = false;
+					
+					width = systemManager.stage.fullScreenWidth;
+					height = systemManager.stage.fullScreenHeight;
+					
+				} else {
+					imgScreenNarrow.visible = false;
+					imgScreenExapnd.visible = true;
+					width = 480;
+					height = 360;
+				}
+			}
+			
+			private function clickFullscreenHandler(evt:MouseEvent):void {
+				try {
+					switch (systemManager.stage.displayState) {
+						case StageDisplayState.FULL_SCREEN:
+							systemManager.stage.displayState = StageDisplayState.NORMAL;
+							break;
+						default:
+							systemManager.stage.displayState = StageDisplayState.FULL_SCREEN;
+							break;
+					}
+				} catch (err:SecurityError) {
+					// ignore
+				}
 			}
 			
 			private function updateRemainTime():void
@@ -297,19 +330,22 @@
 				lblEndMark.visible = true;
 			}
 			
-			protected function studioVideo_changeStateHandler(event:VideoDisplay2Event):void
+			protected function studioVideo_changeStateHandler(event:VideoDisplay2StatusEvent):void
 			{
 				switch (event.state) 
 				{
 					case VideoDisplay2State.PLAY:
+						lblLiveMark.visible = true;
 						waittingDlg.visible = false;
 						
 						break;
 					case VideoDisplay2State.STOP:
+						lblLiveMark.visible = false;
 						waittingDlg.visible = true;
 						
 						break;
 					case VideoDisplay2State.FAULT:
+						lblLiveMark.visible = false;
 						waittingDlg.visible = true;
 						lblEndMark.visible = true;
 						
@@ -338,9 +374,10 @@
 			</mx:request>
 		</mx:HTTPService>
 	</fx:Declarations>
-	<player:VideoDisplay2 id="studioVideo" x="0" y="0" width="480" height="360" streamName="{serverSubscribeStr}" changeState="studioVideo_changeStateHandler(event)"/>
-	<s:Group id="waittingDlg" x="0" y="0" width="480" height="360">
-		<mx:SWFLoader id="waittingMovie" x="0" y="0" width="480" height="360" source="{movWaitting}"/>
+	<player:VideoDisplay2 id="studioVideo" horizontalCenter="0" width="{height/3*4}" height="100%" streamName="{serverSubscribeStr}" changeState="studioVideo_changeStateHandler(event)"/>
+	<s:Group id="waittingDlg" x="0" y="0" width="100%" height="100%">
+		<mx:SWFLoader id="waittingMovie" top="0" width="{height/3*4}" height="100%" horizontalCenter="0"
+					  source="{movWaitting}"/>
 		<s:Label id="lblStateU" backgroundAlpha="1.0" color="#000000" fontFamily="NanumGothic" fontSize="27"
 				 fontWeight="bold" horizontalCenter="0" text="현재 방송중이 아닙니다!" textAlign="center"
 				 verticalAlign="middle" verticalCenter="0"/>
@@ -351,17 +388,24 @@
 	<s:Label id="lblLiveMark" visible="false" x="0" y="0" width="60" height="31"
 			 backgroundColor="#FF0000" color="#FFFFFF" fontFamily="Arial" fontSize="16"
 			 fontWeight="bold" text="LIVE" textAlign="center" verticalAlign="middle"/>
-	<s:Group>
-		<skin:VolumeGroup id="ctrlVolume" x="0" y="325" changeVolume="changeVolumeHandler(event)">
-		</skin:VolumeGroup>
-		<skin:VisualSoundSpectrum x="352" y="325">
-		</skin:VisualSoundSpectrum>	
-	</s:Group>
+	<skin:VolumeGroup id="ctrlVolume" left="25" bottom="0"
+					  changeVolume="changeVolumeHandler(event)" />
+	<skin:VisualSoundSpectrum right="0" bottom="0"/>
+	<s:Label id="lblResolution" x="7" y="311" />
 	
-	<s:Label id="lblNotice" x="226" y="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
-			 textAlign="center" verticalAlign="middle"/>
+	<s:Label id="lblNotice" top="10" color="#FFFFFF" fontSize="23" fontWeight="bold"
+			 horizontalCenter="0" textAlign="center" verticalAlign="middle"/>
 	
 	<s:Label id="lblEndMark" visible="false" color="#FFFFFF" fontFamily="Arial"
 			 fontSize="12" fontWeight="bold" text="통신 상황이 좋지 않습니다. &#xd;인터넷 상태를 다시 확인하시고 리프레쉬해주세요. &#xd;반복해서 발생하면 관리자에게 연락해주세요." textAlign="center" verticalAlign="middle"/>
+	<s:Group left="0" bottom="0" width="25" height="25"  click="clickFullscreenHandler(event)">
+		<s:Rect width="25" height="25">
+			<s:fill>
+				<s:SolidColor color="#EEEEEE" alpha=".8" />
+			</s:fill>
+		</s:Rect>
+		<s:Image id="imgScreenExapnd" visible="true" x="3" y="3" width="19" height="19" source="@Embed(source='assets/screen_expand.png')"/>
+		<s:Image id="imgScreenNarrow" visible="false" x="3" y="3"  width="19" height="19" source="@Embed(source='assets/screen_narrow.png')"/>
+	</s:Group>
 
 </mx:Application>
